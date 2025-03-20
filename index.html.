@@ -1,0 +1,59 @@
+package com.example.commandmod;
+
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
+
+import java.util.HashSet;
+import java.util.Set;
+
+@Mod("commandmod")
+public class CommandMod {
+    private static final Set<ServerPlayer> vanishedPlayers = new HashSet<>();
+
+    public CommandMod() {
+    }
+
+    @SubscribeEvent
+    public void onRegisterCommands(RegisterCommandsEvent event) {
+        CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
+        
+        dispatcher.register(Commands.literal("vanish")
+                .requires(source -> source.hasPermission(2))
+                .executes(context -> vanishPlayer(context.getSource())));
+
+        dispatcher.register(Commands.literal("appear")
+                .requires(source -> source.hasPermission(2))
+                .executes(context -> appearPlayer(context.getSource())));
+    }
+
+    private int vanishPlayer(CommandSourceStack source) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        if (!vanishedPlayers.contains(player)) {
+            vanishedPlayers.add(player);
+            player.setInvisible(true);
+            source.sendSuccess("You have vanished!", true);
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private int appearPlayer(CommandSourceStack source) throws CommandSyntaxException {
+        ServerPlayer player = source.getPlayerOrException();
+        if (vanishedPlayers.contains(player)) {
+            vanishedPlayers.remove(player);
+            player.setInvisible(false);
+            source.sendSuccess("You have appeared!", true);
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+}
+
+// Mod Version: 51.0.33
+// Game Version: 1.21
